@@ -1,0 +1,72 @@
+{% from "macros/svgs.html" import star, pencil %}
+
+{% extends "layout.html" %}
+
+{% block head_content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/material_details.css') }}">
+{% endblock %}
+
+{% block main_content %}
+<div class="container">
+    <header class="material__header">
+        <div class="material__row">
+            <div class="material__name">
+                <h1>{{material.title}}</h1>
+                {% if user.role == "estudiante" %}
+                <div class="material__rating">
+                    {% set user_rating = material.ratings.get(user._id, 0) %}
+                    {% for i in range(5) %}
+                        <a class="rating__link" href="{{ url_for('pages.rate_material', material_id=material._id, rating=i+1) }}">
+                            {{ star("star" + (" star--filled" if user_rating > i else "")) }}
+                        </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            <div class="material__actions">
+                {% if material.last_watched %}
+                    <p>
+                        Última visualización: <a href="{{url_for('pages.watch_today', material_id=material._id)}}" class="watched__link">
+                            <time datetime="{{material.last_watched}}">{{material.last_watched.strftime('%d/%m/%Y')}}</time>
+                        </a>
+                    </p>
+                {% else %}
+                    <p>
+                        <a href="{{url_for('pages.watch_today', material_id=material._id)}}" class="watched__link">
+                            Marcar como visto
+                        </a>
+                    </p>
+                {% endif %}
+                {% if user.role == "profesor" %}
+                    <a class="material__edit" href="{{url_for('pages.edit_material', material_id=material._id)}}">Editar {{pencil("pencil")}}</a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="header__row">
+            <ul class="movie__tags">
+                {% for tag in material.tags %}
+                    <li class="movie__tag">{{tag}}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </header>
+
+    {% if material.url %}
+    <iframe
+        class="material__video"
+        src="{{ material.url }}"
+        title="Video de {{ material.title }}"
+        frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen
+    ></iframe>
+    {% endif %}
+
+    {% if material.description %}
+       <p class="material__description">{{material.description}}</p>
+   
+    {% endif %}
+</div>
+
+
+{% endblock %}

@@ -1,0 +1,13 @@
+# Ignorar archivos de entorno y scripts sensibles
+.env
+*.env
+generar_hash.py
+crear_profesor.py
+
+# Ignorar carpetas de Python
+__pycache__/
+*.pyc
+
+# Ignorar entorno virtual
+venv/
+env/

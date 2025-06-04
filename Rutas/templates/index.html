@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+
+{% block head_content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/materiales.css') }}">
+
+{% endblock %}
+
+{% block main_content %}
+    {% if materiales_data %}
+    <table class="table">
+        <colgroup></colgroup>
+            <col style="width: 60%;">
+            <col style="width: 25%;">
+            <col style="width: 15%;">
+        </colgroup>
+        <thead>
+            <th class="table__cell table__cell--header">Titulo</th>
+            <th class="table__cell table__cell--header">Fecha de Publicacion</th>
+            <th class="table__cell table__cell--header">Promedio</th>
+        </thead>
+        <tbody>
+            {% for material in materiales_data %}
+            <tr>
+                <td class="table__cell">
+                    <p class="table__materialTitle">{{ material.title }}</p> 
+                </td>
+                <td class="table__cell">
+                    {{ material.created_at.strftime('%d/%m/%Y') if material.created_at else '' }}
+                </td>
+                <td class="table__cell">
+                    {{ material.rating if material.rating else "Sin calificar" }}
+                </td>
+                <td class="table__cell"><a href="{{ url_for('pages.material', material_id=material._id) }}" class="table__link"> View</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p class="table__empty">No hay materiales para ver. <a href="{{ url_for('pages.add_material') }}" class="link">Agregar Material!</a></p>
+    {% endif %}
+
+    {% if user.role == "profesor" %}
+    <a href="{{ url_for('pages.add_material') }}" class="button button--add">
+        <span>+</span>
+    </a>
+    {% endif %}
+{% endblock %}
