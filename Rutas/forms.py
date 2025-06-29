@@ -32,7 +32,12 @@ class RegisterForm(FlaskForm):
     username = StringField("Nombre de usuario", validators=[InputRequired(), Length(min=3, max=20)])
     password = PasswordField("Contraseña", validators=[InputRequired(), Length(min=6, max=20, message="Mínimo 6 caracteres y máximo 20 caracteres")])
     confirm_password = PasswordField("Confirmar contraseña", validators=[InputRequired(), EqualTo("password", message="Las contraseñas no coinciden")])
-    role = SelectField("Rol", choices=[("profesor", "Profesor"), ("estudiante", "Estudiante")])
+    role = SelectField(
+        "Rol",
+        choices=[("profesor", "Profesor"), ("estudiante", "Estudiante")],
+        validators=[],
+        validate_choice=False  # <-- Agrega esto
+    )
     submit = SubmitField("Registrar")
 
 class LoginForm(FlaskForm):

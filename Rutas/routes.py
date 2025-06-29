@@ -1,12 +1,19 @@
 from flask import Blueprint, abort, render_template, session, redirect, request, url_for, current_app, flash
 from Rutas.forms import MaterialForm, ExtendedMaterialForm, RegisterForm, LoginForm
+from Rutas.UserRepository import UserRepository
+import uuid
 import uuid
 import copy
 import datetime
 import functools
 from dataclasses import asdict
 from Rutas.models import Material, User
+from Rutas.UserService import UserService
+import uuid
 from passlib.hash import pbkdf2_sha256
+
+user_repo = UserRepository()
+user_service = UserService(user_repo)
 
 pages = Blueprint(
     "pages", __name__, template_folder="templates", static_folder="static"
@@ -74,46 +81,30 @@ def index():
 def register():
     if session.get("email"):
         return redirect(url_for(".index"))
-    
     form = RegisterForm()
-
     if form.validate_on_submit():
-        user = User(
-            _id=uuid.uuid4().hex,
-            email=form.email.data,
-            username=form.username.data,
-            password=pbkdf2_sha256.hash(form.password.data),
-            role="estudiante"
+        success, message = user_service.register_user(
+            form.email.data, form.username.data, form.password.data
         )
-        current_app.db.user.insert_one(asdict(user))
-        flash("Usuario registrado correctamente", "success")
-        return redirect(url_for(".login"))
-        
+        flash(message, "success" if success else "danger")
+        if success:
+            return redirect(url_for(".login"))
+        return redirect(url_for(".register"))
     return render_template("register.html", title="Registrar", form=form)
 
 @pages.route("/login", methods=["GET", "POST"])
 def login():
     if session.get("email"):
         return redirect(url_for(".index"))
-    
     form = LoginForm()
-
     if form.validate_on_submit():
-        user_data = current_app.db.user.find_one({"email": form.email.data})
-        if not user_data:
+        user = user_service.authenticate(form.email.data, form.password.data)
+        if not user:
             flash("Correo electrónico o contraseña incorrectos", category="danger")
             return redirect(url_for(".login"))
-        
-        if "ratings" in user_data:
-            del user_data["ratings"]
-        user = User(**user_data)
-        if user and pbkdf2_sha256.verify(form.password.data, user.password):
-            session["user_id"] = user._id
-            session["email"] = user.email
-            return redirect(url_for(".index"))
-        
-        flash("Correo electrónico o contraseña incorrectos", category="danger")
-        
+        session["user_id"] = user["_id"]
+        session["email"] = user["email"]
+        return redirect(url_for(".index"))
     return render_template("login.html", title="Iniciar sesión", form=form)
 
 @pages.route("/logout")
@@ -305,4 +296,3 @@ def admin_delete_user(user_id):
     current_app.db.user.delete_one({"_id": user_id})
     flash("Usuario eliminado", "success")
     return redirect(url_for(".admin_users"))
-    
