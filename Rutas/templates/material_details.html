@@ -66,6 +66,23 @@
        <p class="material__description">{{material.description}}</p>
    
     {% endif %}
+
+    {% if profesor %}
+    <div class="material__profesor">
+        <p><b>Profesor:</b> {{ profesor.username }}</p>
+        <p><b>Calificación del profesor:</b> {{ profesor.rating if profesor.rating else 'Sin calificar' }}</p>
+        {% if user.role == "estudiante" %}
+        <div class="material__rating">
+            {% set user_prof_rating = profesor.ratings.get(user._id, 0) %}
+            {% for i in range(5) %}
+                <a class="rating__link" href="{{ url_for('pages.rate_profesor', profesor_id=profesor._id, rating=i+1, next=request.path) }}">
+                    {{ star("star" + (" star--filled" if user_prof_rating > i else "")) }}
+                </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
 
 

@@ -6,7 +6,7 @@
 {% endblock %}
 
 {% block main_content %}
-    {% if materiales_data %}
+    {% if materiales_zip %}
     <table class="table">
         <colgroup></colgroup>
             <col style="width: 60%;">
@@ -16,10 +16,12 @@
         <thead>
             <th class="table__cell table__cell--header">Titulo</th>
             <th class="table__cell table__cell--header">Fecha de Publicacion</th>
-            <th class="table__cell table__cell--header">Promedio</th>
+            <th class="table__cell table__cell--header">Promedio Material</th>
+            <th class="table__cell table__cell--header">Profesor</th>
+            <th class="table__cell table__cell--header">Promedio Profesor</th>
         </thead>
         <tbody>
-            {% for material in materiales_data %}
+            {% for material, profesor in materiales_zip %}
             <tr>
                 <td class="table__cell">
                     <p class="table__materialTitle">{{ material.title }}</p> 
@@ -29,6 +31,12 @@
                 </td>
                 <td class="table__cell">
                     {{ material.rating if material.rating else "Sin calificar" }}
+                </td>
+                <td class="table__cell">
+                    {% if profesor %}{{ profesor.username }}{% else %}-{% endif %}
+                </td>
+                <td class="table__cell">
+                    {% if profesor %}{{ profesor.rating if profesor.rating else "Sin calificar" }}{% else %}-{% endif %}
                 </td>
                 <td class="table__cell"><a href="{{ url_for('pages.material', material_id=material._id) }}" class="table__link"> View</a></td>
             </tr>

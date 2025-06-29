@@ -1,0 +1,35 @@
+{% extends "layout.html" %}
+
+{% block head_content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/materiales.css') }}">
+{% endblock %}
+
+{% block main_content %}
+<h2>Gestión de Usuarios</h2>
+<a href="{{ url_for('pages.admin_create_user') }}" class="button button--add" style="position:static; margin-bottom:1rem;">Crear Usuario</a>
+<table class="table">
+    <thead>
+        <tr>
+            <th class="table__cell table__cell--header">Correo</th>
+            <th class="table__cell table__cell--header">Nombre</th>
+            <th class="table__cell table__cell--header">Rol</th>
+            <th class="table__cell table__cell--header">Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td class="table__cell">{{ user.email }}</td>
+            <td class="table__cell">{{ user.username }}</td>
+            <td class="table__cell">{{ user.role|capitalize }}</td>
+            <td class="table__cell">
+                <a href="{{ url_for('pages.admin_edit_user', user_id=user._id) }}" class="table__link">Editar</a>
+                <form action="{{ url_for('pages.admin_delete_user', user_id=user._id) }}" method="post" style="display:inline;">
+                    <button type="submit" class="table__link" onclick="return confirm('¿Seguro que deseas eliminar este usuario?');">Eliminar</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %} 

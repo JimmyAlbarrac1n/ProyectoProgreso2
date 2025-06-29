@@ -20,6 +20,8 @@ class User:
     email: str
     username: str
     password: str
-    role: str  # "profesor" o "estudiante"
+    role: str  # "profesor", "estudiante" o "admin"
     materials: list[str] = field(default_factory=list)
     watched: list[str] = field(default_factory=list)  # IDs de materiales vistos
+    ratings: dict = field(default_factory=dict)  # Calificaciones dadas por estudiantes
+    rating: float = 0.0  # Promedio de calificación

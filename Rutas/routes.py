@@ -31,6 +31,15 @@ def role_required(role):
         return wrapper
     return decorator
 
+def admin_required(route):
+    @functools.wraps(route)
+    def wrapper(*args, **kwargs):
+        user_data = current_app.db.user.find_one({"email": session.get("email")})
+        if not user_data or user_data.get("role") != "admin":
+            abort(403)
+        return route(*args, **kwargs)
+    return wrapper
+
 @pages.route("/")
 @login_required
 def index():
@@ -38,15 +47,26 @@ def index():
     if "ratings" in user_data:
         del user_data["ratings"]
     user = User(**user_data)
+    if user.role == "admin":
+        return redirect(url_for(".admin_users"))
     if user.role == "profesor":
         materiales_data = current_app.db.material.find({"_id": {"$in": user.materials}})
     else:
         materiales_data = current_app.db.material.find({})
-    materiales = [Material(**material) for material in materiales_data]
+    materiales = []
+    materiales_profesores = []
+    for material in materiales_data:
+        mat = Material(**material)
+        # Buscar el profesor dueño del material
+        profesor_data = current_app.db.user.find_one({"materials": mat._id, "role": "profesor"})
+        profesor = User(**profesor_data) if profesor_data else None
+        materiales.append(mat)
+        materiales_profesores.append(profesor)
+    materiales_zip = list(zip(materiales, materiales_profesores))
     return render_template(
         "index.html",
         title="Material Aprendizaje",
-        materiales_data=materiales,
+        materiales_zip=materiales_zip,
         user=user
     )
 
@@ -158,10 +178,19 @@ def material(material_id: str):
     if "ratings" in user_data:
         del user_data["ratings"]
     user = User(**user_data)
+    # Obtener el profesor dueño del material
+    profesor_data = None
+    profesor = None
+    if hasattr(material, 'created_at'):
+        # Buscar el profesor que tenga este material en su lista
+        profesor_data = current_app.db.user.find_one({"materials": material._id, "role": "profesor"})
+        if profesor_data:
+            profesor = User(**profesor_data)
     return render_template(
         "material_details.html",
         material=material,
-        user=user
+        user=user,
+        profesor=profesor
     )
 
 @pages.get("/material/<material_id>/rate")
@@ -200,4 +229,80 @@ def toggle_theme():
     else:
         session["theme"] = "dark"
     return redirect(request.args.get("current_page", url_for("pages.index")))
+
+@pages.get("/profesor/<profesor_id>/rate")
+@login_required
+@role_required("estudiante")
+def rate_profesor(profesor_id):
+    rating = int(request.args.get("rating"))
+    user_id = session["user_id"]
+    profesor_data = current_app.db.user.find_one({"_id": profesor_id, "role": "profesor"})
+    if not profesor_data:
+        abort(404)
+    ratings = profesor_data.get("ratings", {})
+    ratings[user_id] = rating
+    avg_rating = round(sum(ratings.values()) / len(ratings), 2)
+    current_app.db.user.update_one(
+        {"_id": profesor_id},
+        {"$set": {"ratings": ratings, "rating": avg_rating}}
+    )
+    # Redirigir a la página de material si viene de ahí, o a la principal
+    next_url = request.args.get("next")
+    if next_url:
+        return redirect(next_url)
+    return redirect(url_for(".index"))
+
+@pages.route("/admin/users")
+@login_required
+@admin_required
+def admin_users():
+    users = list(current_app.db.user.find({"role": {"$in": ["profesor", "estudiante"]}}))
+    return render_template("admin_users.html", users=users)
+
+@pages.route("/admin/users/create", methods=["GET", "POST"])
+@login_required
+@admin_required
+def admin_create_user():
+    form = RegisterForm()
+    if form.validate_on_submit():
+        user = User(
+            _id=uuid.uuid4().hex,
+            email=form.email.data,
+            username=form.username.data,
+            password=pbkdf2_sha256.hash(form.password.data),
+            role=request.form.get("role", "profesor")
+        )
+        current_app.db.user.insert_one(asdict(user))
+        flash("Usuario creado correctamente", "success")
+        return redirect(url_for(".admin_users"))
+    return render_template("admin_user_form.html", form=form, action="Crear")
+
+@pages.route("/admin/users/edit/<user_id>", methods=["GET", "POST"])
+@login_required
+@admin_required
+def admin_edit_user(user_id):
+    user_data = current_app.db.user.find_one({"_id": user_id})
+    if not user_data:
+        abort(404)
+    form = RegisterForm(data=user_data)
+    if form.validate_on_submit():
+        update_data = {
+            "email": form.email.data,
+            "username": form.username.data,
+            "role": request.form.get("role", user_data.get("role", "profesor"))
+        }
+        if form.password.data:
+            update_data["password"] = pbkdf2_sha256.hash(form.password.data)
+        current_app.db.user.update_one({"_id": user_id}, {"$set": update_data})
+        flash("Usuario actualizado", "success")
+        return redirect(url_for(".admin_users"))
+    return render_template("admin_user_form.html", form=form, action="Editar")
+
+@pages.route("/admin/users/delete/<user_id>", methods=["POST"])
+@login_required
+@admin_required
+def admin_delete_user(user_id):
+    current_app.db.user.delete_one({"_id": user_id})
+    flash("Usuario eliminado", "success")
+    return redirect(url_for(".admin_users"))
     

@@ -1,0 +1,25 @@
+{% from "macros/fields.html" import render_text_field %}
+{% extends "layout.html" %}
+
+{% block head_content %}
+    <link rel="stylesheet" href="{{url_for('static', filename='css/forms.css')}}">
+{% endblock%}
+
+{% block main_content %}
+    <form name="admin-user-form" method="POST" novalidate class="form">
+        <div class="form__container">
+            {{ form.hidden_tag() }}
+            {{ render_text_field(form.email) }}
+            {{ render_text_field(form.username) }}
+            {{ render_text_field(form.password) }}
+            {{ render_text_field(form.confirm_password) }}
+            <div class="form__group">
+                {{ form.role.label(class="form__label") }}
+                {{ form.role(class="form__field") }}
+            </div>
+            <div>
+                <button type="submit" class="button button--form">{{ action }} Usuario</button>
+            </div>
+        </div>
+    </form>
+{% endblock %} 
